@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Azure.WebJobs;
@@ -59,8 +60,7 @@ namespace shf.quote
                 user = "A wise soul";
             }
 
-            message = "It's Monday! Here is the *Super Hobby Friends Quote of the Week*: ";
-            message += "\"" +pin.Text +"\" - " +user +", <!date^" +ReformatMessageTimestamp(pin.TimeStamp) +"^{date}|some nebulous point in the past>";
+            message = BuildQuote(pin, user, channel);
 
             var result = await m_Client.PostAsJsonAsync(SlackWebhookUrl, new { text = message });
         }
@@ -97,8 +97,8 @@ namespace shf.quote
 
         private static IDictionary<string, string> GetChannelsListQueryParams() 
         {
-            return BuildQueryParamDictionary(new string[] { "token", "exclude_archived", "types" }, 
-                                             new string[] { SlackApiToken, "true", "public_channel,private_channel"});
+            return BuildQueryParamDictionary(new string[] { "token", "types" }, 
+                                             new string[] { SlackApiToken, "public_channel,private_channel"});
         }
 
         private static async Task<IList<SlackPin>> GetPinsForChannelFromSlack(string channelIdP) 
@@ -173,6 +173,25 @@ namespace shf.quote
             }
 
             return messageTimestampP;
+        }
+
+        private static string BuildQuote(SlackMessage pinP, String userP, SlackChannel channelP) 
+        {
+            StringBuilder message_builder = new StringBuilder("It's Monday! Here is the *Super Hobby Friends Quote of the Week*: ");
+            message_builder.AppendLine();
+            message_builder.Append(">");
+            message_builder.Append(pinP.Text);
+            message_builder.AppendLine();
+            message_builder.Append(userP);
+            message_builder.Append(", <#");
+            message_builder.Append(channelP.Id);
+            message_builder.Append("|");
+            message_builder.Append(channelP.Name);
+            message_builder.Append(">, <!date^");
+            message_builder.Append(ReformatMessageTimestamp(pinP.TimeStamp));
+            message_builder.Append("^{date}|some nebulous point in the past>");
+
+            return message_builder.ToString();
         }
 
         private class SlackPayload
